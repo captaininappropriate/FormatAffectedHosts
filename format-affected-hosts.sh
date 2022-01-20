@@ -13,6 +13,23 @@
 filename=$1
 columns=$2
 
+# format a column width based on the column count
+colwidth=""
+case "$2" in
+    1) colwidth='<col width="100%">'
+        ;;
+    2) colwidth='<col width="50%">'
+        ;;
+    3) colwidth='<col width="33%">'
+        ;;
+    4) colwidth='<col width="25%">'
+        ;;
+        # create 100% for unspecified column count as default is one column
+    *) colwidth='<col width="100%">'
+        ;;
+esac
+
+
 # script usage function
 Help() {
     echo "[*] Usage : $0 [filename] <column>"
@@ -39,8 +56,6 @@ else
     echo ""
 fi
 
-#### IP Sorting ####
-
 # create an array to hold the unsorted IP addresses
 unsortedArray=()
 
@@ -52,34 +67,22 @@ done < $filename
 # create a sorted and unique array from the unsorted array elements
 sortedArray=($(echo "${unsortedArray[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 
-#### end sort ####
-
 # create the beginning of the html table structure
 echo "<table>"
 echo "<colgroup>"
 
-# check if optional column argument was specified
-# if the optional argument was not specified create a default of one column
-if [ "$columns" == "" ]; then
-    echo "<col>"
-    echo "</colgroup>"
-    echo "<thead>"
-    echo "<tr>"
+# format col and th HTML elements based on user supplied argument
+for i in $( seq 1 $columns ); do
+    echo "$colwidth"
+done
+
+echo "</colgroup>"
+echo "<thead>"
+echo "<tr>"
+for i in $( seq 1 $columns); do
     echo "<th>IP Address</th>"
-else
-    # format col and th HTML elements based on user supplied argument
-    for i in $( seq 1 $columns )
-        do
-            echo "<col>"
-        done
-    echo "</colgroup>"
-    echo "<thead>"
-    echo "<tr>"
-    for i in $( seq 1 $columns)
-        do
-            echo "<th>IP Address</th>"
-        done
-fi
+done
+
 echo "</tr>"
 echo "</thead>"
 echo "<tbody>"
