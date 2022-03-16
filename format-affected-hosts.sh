@@ -6,12 +6,16 @@
 #               HTML table with the user specified column number.
 #               The results are output to the console for easy copy/paste
 #               into a pentest report as affected hosts.
-# Version     : 1.0
+# Version     : 1.1
 # Author      : Greg Nimmo
+# Credit      : Yulin Chen
 
 # a few global variables for ease of use
 filename=$1
 columns=$2
+
+# convert ip list for compatability purposes
+dos2unix $1
 
 # format a column width based on the column count
 colwidth=""
@@ -24,8 +28,10 @@ case "$2" in
         ;;
     4) colwidth='<col width="25%">'
         ;;
-        # create 100% for unspecified column count as default is one column
-    *) colwidth='<col width="100%">'
+    5) colwidth='<col width="20%">'
+        ;;
+        # create 25% for unspecified column count as default is four column
+    *) colwidth='<col width="25%">'
         ;;
 esac
 
@@ -35,37 +41,29 @@ Help() {
     echo "[*] Usage : $0 [filename] <column>"
     echo ""
     echo "[*] [filename] - manadatory : name of a file containing a list of IP addresses (one per line)"
-    echo "[*] <column> - optional : number of columns to format the list of IP Addresses (maximum 4)"
+    echo "[*] <column> - optional : number of columns to format the list of IP Addresses (maximum 5)"
     echo ""
     exit 0
 }
 
 # check mandatory arguments were supplied 
-if [ "$#" -lt 1 ]; then
+if [[ "$#" -lt 1 ]]; then
   Help
 fi
 
 # check if an optional argument is supplied that it is
 # suitable to be printed on a standard document page
-if [ -z "$columns" ]; then 
-    columns=1
+if [[ -z "$columns" ]]; then 
+    columns=4 # default column number
 elif
-    [ "$columns" -lt 1 ] || [ "$columns" -gt 4 ]; then
+    [[ "$columns" -lt 1 ]] || [[ "$columns" -gt 5 ]]; then
     Help
 else
     echo ""
 fi
 
-# create an array to hold the unsorted IP addresses
-unsortedArray=()
-
-# add new elements into the array
-while read line; do
-    unsortedArray+=($line)
-done < $filename
-
-# create a sorted and unique array from the unsorted array elements
-sortedArray=($(echo "${unsortedArray[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+# create an array to hold the sorted lines
+sortedArray=($(cat $filename | sort -uV | tr -d '\r' | tr '\n' ' '))
 
 # create the beginning of the html table structure
 echo "<table>"
@@ -77,23 +75,20 @@ for i in $( seq 1 $columns ); do
 done
 
 echo "</colgroup>"
-echo "<thead>"
-echo "<tr>"
-for i in $( seq 1 $columns); do
-    echo "<th>IP Address</th>"
-done
-
-echo "</tr>"
-echo "</thead>"
 echo "<tbody>"
-echo "<tr>"
 
 # format the IP addresses into the specified number of columns
+i=0
 for ip in "${sortedArray[@]}"; do
-    for col in $(seq 1 $columns); do
-        echo -n "<td>$ip</td>"
-    done
-    echo "</tr>"
+    if [[ $i -eq 0 ]]; then 
+        echo "<tr>"
+    fi
+    echo "<td>$ip</td>"
+    ((i+=1))
+    if [[ $i -eq $columns ]]; then 
+        echo "</tr>"
+        i=0
+    fi
 done
 
 # close off the table
